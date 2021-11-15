@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=\, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+    <!-- load leaflet style sheet, needs to be before the leaflet js file -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+      integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+      crossorigin=""
+    />
+
+    <!-- load the leaflet js file, don't move this -->
+    <script
+      src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+      integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+      crossorigin=""
+    ></script>
+
+    <!-- the map needs to have a defined pixel amount, or else it won't load. can't set height and width to auto -->
+    <style>
+      #usMap {
+      	margin: 0 auto;
+        height: 500px;
+        width: 950px;
+      }
+
+      div h1{
+      	text-align:center;
+      }
+
+      #choiceContainer{
+        position: absolute;
+        top: 50%;
+        left: 10%;
+        transform: translate(-50%, -50%);
+      }
+
+      .colorScale{
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .myButtons{
+        display: block;
+      }
+
+      #pieContainer{
+        display: inline-block;
+        width: 950px;
+        height: 350px;
+        position: absolute;
+        left: 17.5%;
+        padding: 5px;
+        border: 1px solid blue;
+        clear: both;   
+      }
+
+      div.inlineBlock-container{
+        margin: auto;
+      }
+
+      .PieCharts{
+        width: 300px;
+        height: 300px;
+        display: inline-block;
+      }
+    </style>
+
+    <title>Display Covid Cases By state and date</title>
+  </head>
+  <body>
+
+    <!--Load external javascript libraries-->
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script src="chart.min.js"></script>
+    <script src="leafletHeat.js"></script>
+
+    <!--Add a link back to the home page-->
+    <p align="right" style="vertical-align: top;">
+      <a href="https://crayleblanc.github.io/lamda_main_page/">Home Page</a>
+    </p>
+
+    <div>
+    	<h1 id="pageTitle">Covid Statistics by State and Date</h1>
+    </div>
+
+    <div>
+      <img src="gradientScale.jpg" alt="Color Scale" width="350" height="50" class="colorScale">
+    </div>
+
+    
+
+    <div class="inlineBlock-container">
+      <div id="usMap" class="inlineBlock"></div>
+    </div>
+
+    <script>
+      var stateArray=['AL',
+                      'AK',
+                      'AZ',
+                      'AR',
+                      'CA',
+                      'CO',
+                      'CT',
+                      'DE',
+                      'FL',
+                      'GA',
+                      'HI',
+                      'ID',
+                      'IL',
+                      'IN',
+                      'IA',
+                      'KS',
+                      'KY',
+                      'LA',
+                      'ME',
+                      'MD',
+                      'MA',
+                      'MI',
+                      'MN',
+                      'MS',
+                      'MO',
+                      'MT',
+                      'NE',
+                      'NV',
+                      'NH',
+                      'NJ',
+                      'NM',
+                      'NY',
+                      'NC',
+                      'ND',
+                      'OH',
+                      'OK',
+                      'OR',
+                      'PA',
+                      'RI',
+                      'SC',
+                      'SD',
+                      'TN',
+                      'TX',
+                      'UT',
+                      'VT',
+                      'VA',
+                      'WA',
+                      'WV',
+                      'WI',
+                      'WY'
+                      ];
+
+      //this sets the starting position of the map, the coordinates are for the center of the US
+      const mymap = L.map('usMap').setView([38.5,-96.4], 4);
+
+      //this section gives credit to openstreetmap adds their name to the bottom right half of the map
+      const attribution =
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+      const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      const tiles = L.tileLayer(tileUrl, { attribution });
+      tiles.addTo(mymap);
+
+      var layerGroup=L.layerGroup().addTo(mymap);
+
+      var stateCoordinateDict= {
+                            'AL':'32.31,-86.9',
+                            'AK':'66.16,-153.36',
+                            'AZ':'34.04,-111.09',
+                            'AR':'34.79,-92.19',
+                            'CA':'36.77,-119.41',
+                            'CO':'39.11,-105.35',
+                            'CT':'41.59,-72.69',
+                            'DE':'39,-75.5',
+                            'FL':'27.99,-81.76',
+                            'GA':'33.24,-83.44',
+                            'HI':'19.74,-155.84',
+                            'ID':'44.06,-114.74',
+                            'IL':'40,-89',
+                            'IN':'40.27,-86.12',
+                            'IA':'42.03,-93.58',
+                            'KS':'38.5,-98',
+                            'KY':'37.83,-84.27',
+                            'LA':'30.39,-92.32',
+                            'ME':'45.36,-68.97',
+                            'MD':'39.04,-76.64',
+                            'MA':'42.4,-71.38',
+                            'MI':'44.18,-84.5',
+                            'MN':'46.39,-94.63',
+                            'MS':'33,-90',
+                            'MO':'38.57,-92.6',
+                            'MT':'46.96,-109.53',
+                            'NE':'41.5,-100',
+                            'NV':'39.87,-117.22',
+                            'NH':'44,-71.5',
+                            'NJ':'39.83,-74.87',
+                            'NM':'34.3,-106.01',
+                            'NY':'43,-75',
+                            'NC':'35.78,-80.79',
+                            'ND':'47.65,-100.43',
+                            'OH':'40.36,-82.99',
+                            'OK':'36.08,-96.92',
+                            'OR':'44,-120.5',
+                            'PA':'41.2,-77.19',
+                            'RI':'41.7,-71.5',
+                            'SC':'33.83,-81.16',
+                            'SD':'44.5,-100',
+                            'TN':'35.86,-86.66',
+                            'TX':'31,-100',
+                            'UT':'39.41,-111.95',
+                            'VT':'44,-72.69',
+                            'VA':'37.92,-78.02',
+                            'WA':'47.75,-120.74',
+                            'WV':'39,-80.5',
+                            'WI':'44.5,-89.5',
+                            'WY':'43.07,-107.29'
+                          };
+    </script>
+
+   <!--This is where the code for the date selection starts-->
+   <div id='choiceContainer'>
+    <p>Choose new or total cases</p>
+    <select name='statChoice' id='statistics'>
+      <option value="new_case">New Cases</option>
+      <option value="tot_cases">Total Cases</option>
+      <option value="new_death">New Deaths</option>
+      <option value="tot_death">Total Deaths</option>
+    </select>
+
+    <p>Choose the date to display</p>
+    <select name='dateChoice' id='dateTime'>
+
+      <script type="text/javascript">
+        $(document).ready(function(){
+          var submitButton=document.getElementById('submit');
+          submitButton.addEventListener('click', displayCharts);
+        });
+        
+
+        var dateArray=[];
+        var stateCoordandCases=[];
+
+        //this function is used to make the displayed value for the date more readable, but doesn't change the actual value for the option
+        function formatDate(dateInput){
+          return (String(dateInput).split('T'))[0];
+        }
+
+        async function populateDate(){
+
+          //I'm using one state to check for the date values, because presumably they're the same for all states.
+          //By only checking for one state, I'm saving time it would take to check for the 49 other states' dates
+          let api_url='https://healthdata.gov/resource/j8mb-icvb.json?state_name=Alabama&overall_outcome=Positive';
+
+          let response=await fetch(api_url);
+          let json_data=await response.json();
+
+          // for(value of json_data){
+          //   dateArray.push(value.date);
+          //   $("#dateTime").append("<option value="+"'"+ value.date + "'>" + formatDate(value.date) + "</option>");
+          // }
+
+          json_data.forEach(function(value){
+            dateArray.push(value.date);
+            $("#dateTime").append("<option value="+"'"+ value.date + "'>" + formatDate(value.date) + "</option>");
+          });
+        }
+
+        populateDate();
+
+        async function apiQuery(){
+
+            //selects the value that the user has chosen for the date and statistic selection whenever submit is pressed
+            let chosenDate=document.getElementById('dateTime').value;
+
+            let case_dict={}
+
+            //queries the API for positive cases for the chosen date, all it needs is the state name
+            let apiURL=`https://data.cdc.gov/resource/9mfq-cb36.json?submission_date=${chosenDate}`;
+
+            
+            let case_response= await fetch(apiURL);
+            let case_json_data=await case_response.json();
+
+            for(currentState of case_json_data){
+              case_dict[currentState.state]={
+                "tot_cases":currentState.tot_cases,
+                "new_case":currentState.new_case,
+                "tot_death":currentState.tot_death,
+                "new_death":currentState.new_death
+              }
+            }
+
+            return case_dict;
+        }
+
+        async function plotPoints(inputDictionary){
+          let statSelection=document.getElementById('statistics').value;
+          let selected_case_array=[]
+
+          for(currentState of stateArray){
+            selected_case_array.push(inputDictionary[currentState][statSelection]);
+          }
+
+          //returns the largest number of cases in the array, used to find the heat intensities
+          let maxCases=Math.max(...selected_case_array);
+
+          for(state of stateArray){
+            let coordinates=(stateCoordinateDict[state]).split(",");
+            let stateLat=parseFloat(coordinates[0]);
+            let stateLong=parseFloat(coordinates[1]);
+            let stateCases=inputDictionary[state][statSelection];
+
+            var heat = L.heatLayer([
+                        [stateLat,stateLong, stateCases/maxCases], 
+                      ], {radius: 38,
+                          minOpacity:0.25,
+                          gradient:{
+                            0.00: 'rgb(255,0,255)',
+                            0.25: 'rgb(0,0,255)',
+                            0.50: 'rgb(0,255,0)',
+                            0.75: 'rgb(255,255,0)',
+                            1.00: 'rgb(255,0,0)'
+                          }
+                         }).addTo(layerGroup);
+          }
+          return true;
+        }
+
+      </script>
+    </select>
+
+    <div>
+     <button id="submit" class="myButtons">Make Queries</button>
+     <button id="mapClear" class="myButtons">Clear Map</button>
+    </div>
+    
+  </div>
+
+   <script type="text/javascript">
+     $(document).ready(function(){
+       var clearButton=document.getElementById('mapClear');
+       clearButton.addEventListener('click', clearMap);
+     });
+
+     //refreshing the page was used instead of clearing the layergroup because the browser seems to keep some memory of the previous map points.
+     //after several selections, the page would slow down and the map points would overlap. So, reloading the page solves those problems
+     function clearMap(){
+      location.reload();
+     }
+
+     async function displayCharts(){
+      let submitButton=document.getElementById('submit');
+      submitButton.disabled = true;
+
+      let state_case_dict=await apiQuery();
+      let dummy_variable=await plotPoints(state_case_dict);
+     }
+   </script>
+
+  </body>
+</html>
